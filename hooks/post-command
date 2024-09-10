@@ -67,6 +67,7 @@ export PATH="${PATH}:${TRIVY_EXE_PATH%/*}"
 
 args=()
 fsargs=()
+imageargs=()
 
 final_exit_code="${BUILDKITE_PLUGIN_TRIVY_EXIT_CODE:-1}"
 args+=("--exit-code" "$final_exit_code")
@@ -87,18 +88,33 @@ if [[ -n "${BUILDKITE_PLUGIN_TRIVY_SEVERITY:-}" ]] ; then
   echo "using non-default severity types"
 fi
 
-if [[ -n "${BUILDKITE_PLUGIN_TRIVY_SKIP_FILES:-}" ]] ; then
-  fsargs+=("--skip-files" "${BUILDKITE_PLUGIN_TRIVY_SKIP_FILES}")
-  echo "skipping files '$BUILDKITE_PLUGIN_TRIVY_SKIP_FILES' from scan "
+if [[ -n "${BUILDKITE_PLUGIN_TRIVY_FS_SKIP_FILES:-}" ]] ; then
+  fsargs+=("--skip-files" "${BUILDKITE_PLUGIN_TRIVY_FS_SKIP_FILES}")
+  echo "skipping files '$BUILDKITE_PLUGIN_TRIVY_FS_SKIP_FILES' from scan "
 fi
 
-if [[ -n "${BUILDKITE_PLUGIN_TRIVY_SKIP_DIRS:-}" ]] ; then
-  fsargs+=("--skip-dirs" "${BUILDKITE_PLUGIN_TRIVY_SKIP_DIRS}")
-  echo "skipping directories '$BUILDKITE_PLUGIN_TRIVY_SKIP_DIRS' from scan "
+if [[ -n "${BUILDKITE_PLUGIN_TRIVY_IMAGE_SKIP_FILES:-}" ]] ; then
+  imageargs+=("--skip-files" "${BUILDKITE_PLUGIN_TRIVY_IMAGE_SKIP_FILES}")
+  echo "skipping files '$BUILDKITE_PLUGIN_TRIVY_IMAGE_SKIP_FILES' from scan "
 fi
 
-if [[ -n "${BUILDKITE_PLUGIN_TRIVY_HELM_OVERRIDES_FILE:-}" ]]; then
-	fsargs+=("--helm-values" "${BUILDKITE_PLUGIN_TRIVY_HELM_OVERRIDES_FILE}")
+if [[ -n "${BUILDKITE_PLUGIN_TRIVY_FS_SKIP_DIRS:-}" ]] ; then
+  fsargs+=("--skip-dirs" "${BUILDKITE_PLUGIN_TRIVY_FS_SKIP_DIRS}")
+  echo "skipping directories '$BUILDKITE_PLUGIN_TRIVY_FS_SKIP_DIRS' from scan "
+fi
+
+if [[ -n "${BUILDKITE_PLUGIN_TRIVY_IMAGE_SKIP_DIRS:-}" ]] ; then
+  imageargs+=("--skip-dirs" "${BUILDKITE_PLUGIN_TRIVY_IMAGE_SKIP_DIRS}")
+  echo "skipping directories '$BUILDKITE_PLUGIN_TRIVY_IMAGE_SKIP_DIRS' from scan "
+fi
+
+if [[ -n "${BUILDKITE_PLUGIN_TRIVY_FS_HELM_OVERRIDES_FILE:-}" ]]; then
+	fsargs+=("--helm-values" "${BUILDKITE_PLUGIN_TRIVY_FS_HELM_OVERRIDES_FILE}")
+	echo "scanning with helm overrides"
+fi
+
+if [[ -n "${BUILDKITE_PLUGIN_TRIVY_IMAGE_HELM_OVERRIDES_FILE:-}" ]]; then
+	imageargs+=("--helm-values" "${BUILDKITE_PLUGIN_TRIVY_IMAGE_HELM_OVERRIDES_FILE}")
 	echo "scanning with helm overrides"
 fi
 
@@ -107,15 +123,26 @@ if [[ "${BUILDKITE_PLUGIN_TRIVY_IGNORE_UNFIXED:-false}" == true ]] ; then
   echo "ignore-unfixed is set. Will ignore unfixed vulnerabilities"
 fi
 
-if [[ -n "${BUILDKITE_PLUGIN_TRIVY_SCANNERS:-}" ]] ; then
-  fsargs+=("--scanners" "${BUILDKITE_PLUGIN_TRIVY_SCANNERS}")
-  echo "using $BUILDKITE_PLUGIN_TRIVY_SCANNERS scanners"
-elif [[ -n "${BUILDKITE_PLUGIN_TRIVY_SECURITY_CHECKS:-}" ]] ; then
-  fsargs+=("--scanners" "${BUILDKITE_PLUGIN_TRIVY_SECURITY_CHECKS}")
-  echo "using $BUILDKITE_PLUGIN_TRIVY_SECURITY_CHECKS security checks - DEPRECATED, use scanners instead!"
+if [[ -n "${BUILDKITE_PLUGIN_TRIVY_FS_SCANNERS:-}" ]] ; then
+  fsargs+=("--scanners" "${BUILDKITE_PLUGIN_TRIVY_FS_SCANNERS}")
+  echo "using $BUILDKITE_PLUGIN_TRIVY_FS_SCANNERS scanners"
+elif [[ -n "${BUILDKITE_PLUGIN_TRIVY_FS_SECURITY_CHECKS:-}" ]] ; then
+  fsargs+=("--scanners" "${BUILDKITE_PLUGIN_TRIVY_FS_SECURITY_CHECKS}")
+  echo "using $BUILDKITE_PLUGIN_TRIVY_FS_SECURITY_CHECKS security checks - DEPRECATED, use scanners instead!"
 else
   echo "using default scanners"
   fsargs+=("--scanners" "vuln,misconfig")
+fi
+
+if [[ -n "${BUILDKITE_PLUGIN_TRIVY_IMAGE_SCANNERS:-}" ]] ; then
+  imageargs+=("--scanners" "${BUILDKITE_PLUGIN_TRIVY_IMAGE_SCANNERS}")
+  echo "using $BUILDKITE_PLUGIN_TRIVY_IMAGE_SCANNERS scanners"
+elif [[ -n "${BUILDKITE_PLUGIN_TRIVY_IMAGE_SECURITY_CHECKS:-}" ]] ; then
+  imageargs+=("--scanners" "${BUILDKITE_PLUGIN_TRIVY_IMAGE_SECURITY_CHECKS}")
+  echo "using $BUILDKITE_PLUGIN_TRIVY_IMAGE_SECURITY_CHECKS security checks - DEPRECATED, use scanners instead!"
+else
+  echo "using default scanners"
+  imageargs+=("--scanners" "vuln,misconfig")
 fi
 
 echo "+++ scanning filesystem"
@@ -165,7 +192,7 @@ else
 fi
 
 echo "+++ scanning container image"
-trivy image "${args[@]}" "$targetimageref"
+trivy image "${args[@]}" "${imageargs[@]}" "$targetimageref"
 status=$?
 
 if [[ $status -ne 0 ]]; then
