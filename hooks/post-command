@@ -84,7 +84,7 @@ if [[ -n "${BUILDKITE_PLUGIN_TRIVY_TIMEOUT:-}" ]] ; then
 fi
 
 if [[ -n "${BUILDKITE_PLUGIN_TRIVY_SEVERITY:-}" ]] ; then
-  args+=("--severity" "${BUILDKITE_PLUGIN_TRIVY_SEVERITY}")
+  # args+=("--severity" "${BUILDKITE_PLUGIN_TRIVY_SEVERITY}")
   echo "using non-default severity types"
 fi
 
@@ -130,7 +130,7 @@ elif [[ -n "${BUILDKITE_PLUGIN_TRIVY_FS_SECURITY_CHECKS:-}" ]] ; then
   fsargs+=("--scanners" "${BUILDKITE_PLUGIN_TRIVY_FS_SECURITY_CHECKS}")
   echo "using $BUILDKITE_PLUGIN_TRIVY_FS_SECURITY_CHECKS security checks - DEPRECATED, use scanners instead!"
 else
-  echo "using default scanners"
+  echo "using default fs scanners"
   fsargs+=("--scanners" "vuln,misconfig")
 fi
 
@@ -141,7 +141,7 @@ elif [[ -n "${BUILDKITE_PLUGIN_TRIVY_IMAGE_SECURITY_CHECKS:-}" ]] ; then
   imageargs+=("--scanners" "${BUILDKITE_PLUGIN_TRIVY_IMAGE_SECURITY_CHECKS}")
   echo "using $BUILDKITE_PLUGIN_TRIVY_IMAGE_SECURITY_CHECKS security checks - DEPRECATED, use scanners instead!"
 else
-  echo "using default scanners"
+  echo "using default image scanners"
   imageargs+=("--scanners" "vuln,misconfig")
 fi
 
@@ -192,8 +192,6 @@ else
 fi
 
 echo "+++ scanning container image"
-echo "JJDEBUG
-echo ${imageargs[@]}"
 trivy image "${args[@]}" "${imageargs[@]}" "$targetimageref"
 status=$?
 
