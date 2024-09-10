@@ -192,6 +192,8 @@ else
 fi
 
 echo "+++ scanning container image"
+echo "JJDEBUG
+echo ${imageargs[@]}"
 trivy image "${args[@]}" "${imageargs[@]}" "$targetimageref"
 status=$?
 
